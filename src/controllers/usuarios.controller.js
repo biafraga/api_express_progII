@@ -84,11 +84,85 @@ const criarUsuario = (req, res, next) => {
 };
 
 const atualizarUsuario = (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const usuarioAtual = usuariosData.buscarPorId(id);
 
+        if (!usuarioAtual) {
+            const erro = new Error('Usuário não encontrado');
+            erro.status = 404;
+            return next(erro);
+        }
+
+        const {
+            nome,
+            email,
+            senha,
+            dataNascimento,
+            cpf
+        } = req.body;
+
+        if (!nome || !email || !senha || !dataNascimento || !cpf) {
+            const erro = new Error('Todos os campos são obrigatórios');
+            erro.status = 400;
+            return next(erro);
+        }
+
+        const usuarioExistenteEmail = usuariosData.buscarPorEmail(email);
+        if (usuarioExistenteEmail && usuarioExistenteEmail.id !== id) {
+            const erro = new Error('Já existe um usuário com este e-mail');
+            erro.status = 409;
+            return next(erro);
+        }
+
+        const usuarioExistenteCpf = usuariosData.buscarPorCpf(cpf);
+        if (usuarioExistenteCpf && usuarioExistenteCpf.id !== id) {
+            const erro = new Error('Já existe um usuário com este CPF');
+            erro.status = 409;
+            return next(erro);
+        }
+
+        // camada de dados para atualizar
+        const usuarioAlterado = usuariosData.atualizar(id, {
+            nome,
+            email,
+            senha,
+            dataNascimento,
+            cpf
+        });
+
+        return res.status(200).json(removerSenha(usuarioAlterado));
+
+    } catch (error) {
+        next(error);
+    }
 }
+
+const excluirUsuario = (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const usuarioExistente = usuariosData.buscarPorId(id);
+
+        if (!usuarioExistente) {
+            const erro = new Error('Usuário não encontrado');
+            erro.status = 404;
+            return next(erro);
+        }
+
+        usuariosData.excluir(id);
+
+        return res.status(200).json({ mensagem: 'Usuário removido com sucesso' });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
  listarUsuarios,
  buscarUsuarioPorId,
- criarUsuario
+ criarUsuario,
+ atualizarUsuario,
+ excluirUsuario,
 };

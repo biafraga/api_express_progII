@@ -54,5 +54,28 @@ class UsuariosData {
         return novoUsuario;
 
     }
+    atualizar(id, dadosUsuario) {
+        // encontra a posição do usuário no array
+        const index = this.usuarios.findIndex(usuario => usuario.id === id);
+        
+        // cria um novo objeto mesclando o ID original com os dados novos
+        const usuarioAtualizado = {
+            id: id, 
+            ...dadosUsuario
+        };
+
+        // substitui o usuário antigo pelo novo na lista
+        this.usuarios[index] = usuarioAtualizado;
+        
+        return usuarioAtualizado;
+    }
+
+    excluir(id) {
+        const index = this.usuarios.findIndex(usuario => usuario.id === id);
+        
+        // O splice remove 1 elemento a partir da posição (index) encontrada
+        this.usuarios.splice(index, 1);
+    }
+
 }
 module.exports = new UsuariosData();
