@@ -1,168 +1,54 @@
-const usuariosData = require('../data/usuarios.data');
-
-const removerSenha = (usuario) => ({
- id: usuario.id,
- nome: usuario.nome,
- email: usuario.email,
- dataNascimento: usuario.dataNascimento,
- cpf: usuario.cpf
-});
-
-const listarUsuarios = (req, res, next) => {
-    try {
-        const usuarios = usuariosData.listar();
-        const resultado = usuarios.map(removerSenha);
-        
-        return res.status(200).json(resultado);
-    } catch (error) {
-        next(error);
-    }
-};
-
-const buscarUsuarioPorId = (req, res, next) => {
-    try {
-        const id = Number(req.params.id);
-        const usuario = usuariosData.buscarPorId(id);
-
-        if (!usuario) {
-            const erro = new Error('Usuário não encontrado');
-            erro.status = 404;
-            return next(erro);
-        }
-
-        return res.status(200).json(removerSenha(usuario));
-
-    } catch (error) {
-        next(error);
-    }
-};
-
-const criarUsuario = (req, res, next) => {
-    try {
-        const {
-            nome,
-            email,
-            senha,
-            dataNascimento,
-            cpf
-        } = req.body;
-
-        if (!nome || !email || !senha || !dataNascimento || !cpf) {
-            const erro = new Error('Todos os campos são obrigatórios');
-            erro.status = 400;
-            return next(erro);
-        }
-
-        if (usuariosData.buscarPorEmail(email)) {
-            const erro = new Error(
-            'Já existe um usuário com este e-mail'
-            );
-            erro.status = 409;
-            return next(erro);
-        }
-
-        if (usuariosData.buscarPorCpf(cpf)) {
-            const erro = new Error(
-            'Já existe um usuário com este CPF'
-            );
-            erro.status = 409;
-            return next(erro);
-        }
-
-        const novoUsuario = usuariosData.inserir({
-            nome,
-            email,
-            senha,
-            dataNascimento,
-            cpf
-        });
-
-        return res.status(201).json(removerSenha(novoUsuario));
-    } catch (error) {
-        next(error);
-    }
-};
-
-const atualizarUsuario = (req, res, next) => {
-    try {
-        const id = Number(req.params.id);
-        const usuarioAtual = usuariosData.buscarPorId(id);
-
-        if (!usuarioAtual) {
-            const erro = new Error('Usuário não encontrado');
-            erro.status = 404;
-            return next(erro);
-        }
-
-        const {
-            nome,
-            email,
-            senha,
-            dataNascimento,
-            cpf
-        } = req.body;
-
-        if (!nome || !email || !senha || !dataNascimento || !cpf) {
-            const erro = new Error('Todos os campos são obrigatórios');
-            erro.status = 400;
-            return next(erro);
-        }
-
-        const usuarioExistenteEmail = usuariosData.buscarPorEmail(email);
-        if (usuarioExistenteEmail && usuarioExistenteEmail.id !== id) {
-            const erro = new Error('Já existe um usuário com este e-mail');
-            erro.status = 409;
-            return next(erro);
-        }
-
-        const usuarioExistenteCpf = usuariosData.buscarPorCpf(cpf);
-        if (usuarioExistenteCpf && usuarioExistenteCpf.id !== id) {
-            const erro = new Error('Já existe um usuário com este CPF');
-            erro.status = 409;
-            return next(erro);
-        }
-
-        // camada de dados para atualizar
-        const usuarioAlterado = usuariosData.atualizar(id, {
-            nome,
-            email,
-            senha,
-            dataNascimento,
-            cpf
-        });
-
-        return res.status(200).json(removerSenha(usuarioAlterado));
-
-    } catch (error) {
-        next(error);
-    }
+const service = require("../services/usuarios.services");
+async function list(req, res, next) {
+ try {
+ const data = await service.list();
+ res.json(data);
+ } catch (err) {
+ next(err);
+ }
 }
-
-const excluirUsuario = (req, res, next) => {
-    try {
-        const id = Number(req.params.id);
-        const usuarioExistente = usuariosData.buscarPorId(id);
-
-        if (!usuarioExistente) {
-            const erro = new Error('Usuário não encontrado');
-            erro.status = 404;
-            return next(erro);
-        }
-
-        usuariosData.excluir(id);
-
-        return res.status(200).json({ mensagem: 'Usuário removido com sucesso' });
-
-    } catch (error) {
-        next(error);
-    }
-};
-
-
-module.exports = {
- listarUsuarios,
- buscarUsuarioPorId,
- criarUsuario,
- atualizarUsuario,
- excluirUsuario,
-};
+async function getById(req, res, next) {
+ try {
+ const { id } = req.params;
+ const data = await service.get(id);
+ if (!data) {
+ return res.status(404).json({ message: "Usuario nao encontrado" });
+ }
+ res.json(data);
+ } catch (err) {
+ next(err);
+ }
+}
+async function create(req, res, next) {
+ try {
+ const created = await service.create(req.body);
+ res.status(201).json(created);
+ } catch (err) {
+ next(err);
+ }
+}
+async function update(req, res, next) {
+ try {
+ const { id } = req.params;
+ const updated = await service.update(id, req.body);
+ if (!updated) {
+ return res.status(404).json({ message: "Usuario nao encontrado" });
+ }
+ res.json(updated);
+ } catch (err) {
+ next(err);
+ }
+}
+async function remove(req, res, next) {
+ try {
+ const { id } = req.params;
+ const ok = await service.remove(id);
+ if (!ok) {
+ return res.status(404).json({ message: "Usuario nao encontrado" });
+ }
+ res.status(204).send();
+ } catch (err) {
+ next(err);
+ }
+}
+module.exports = { list, getById, create, update, remove };
